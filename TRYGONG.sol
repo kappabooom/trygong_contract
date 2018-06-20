@@ -261,7 +261,7 @@ contract Quiz is TryGongToken,DateTime {
     }
 
     struct Answer{
-    	uint answerId;
+        uint answerId;
         string text; //答案的內容 
         uint hearts; //答案的讚數
         address replyperson;
@@ -274,6 +274,7 @@ contract Quiz is TryGongToken,DateTime {
     
     struct Question{
         uint questionId;
+        string tag;
         string questionName; //題目的主旨
         string text; //題目的內容
         string userName; //建立題目的使用者名稱
@@ -291,11 +292,12 @@ contract Quiz is TryGongToken,DateTime {
     //事件記得寫
     
     //建立一個新題目
-    function newQuestion(string _questionName ,string _text, string _userName,uint _time, uint _money) public returns (bool success,uint id,string questionName, string text, string userNamename, uint time,uint money){
+    function newQuestion(string _questionName ,string _text, string _userName,uint _time, uint _money, string _tag) public returns (uint id,string questionName, string text, string userNamename, string tag, uint time,uint money){
         // not checking for duplicates
         uint _questionId = 1 + questionList.length;
         transfer(owner, _money);
         questionStructs[_questionId].questionId = _questionId;
+        questionStructs[_questionId].tag = _tag;
         questionStructs[_questionId].questionName = _questionName;
         questionStructs[_questionId].text = _text;
         questionStructs[_questionId].userName = _userName;
@@ -303,26 +305,26 @@ contract Quiz is TryGongToken,DateTime {
         questionStructs[_questionId].money = _money;
         questionList.push(_questionId);
         return(
-            true,
             _questionId,
             _questionName,
             _text,
             _userName,
+            _tag,
             questionStructs[_questionId].time,
             questionStructs[_questionId].money
         );
     }
     
     //回傳題目資訊
-    function getQuestion(uint _questionId) public constant returns(uint id,string questionName, string text, string userNamename, uint time,uint money, uint answerCount){
+    function getQuestion(uint _questionId) public constant returns(uint id,string questionName, string text, string userNamename, string tag, uint time,uint money){
         return(
             _questionId,
             questionStructs[_questionId].questionName,
             questionStructs[_questionId].text,
             questionStructs[_questionId].userName, 
+            questionStructs[_questionId].tag,
             questionStructs[_questionId].time,
-            questionStructs[_questionId].money,
-            questionStructs[_questionId].answerList.length);
+            questionStructs[_questionId].money);
     }
 
     //新增選項
@@ -357,6 +359,7 @@ contract Quiz is TryGongToken,DateTime {
         // answer vote will init to 0 without our help
         return true;
     }
+    
     
     //取得答案
     function getQuestionAnswer(uint _questionId, uint _answerId) public constant returns(string answerText, uint answerHeart){
