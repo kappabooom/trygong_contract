@@ -1,23 +1,25 @@
-pragma solidity ^0.4.24;
+ pragma solidity ^0.4.24;
 import "github.com/OpenZeppelin/openzeppelin-solidity/contracts/token/ERC20/StandardToken.sol";
 
 
 
 contract TryGongToken is StandardToken{
-      string public name = "TryGongCoin";
-      string public symbol = "TGC";
-      uint8 public decimals = 3;
-      uint256 public INITIAL_SUPPLY = 1000000000000000000000;
-    
-      constructor() public {
+        string public name = "TryGongCoin";
+        string public symbol = "TGC";
+        uint8 public decimals = 3;
+        uint256 public INITIAL_SUPPLY = 1000000000000000000000;
+        
+        constructor() payable public {
         totalSupply_ = INITIAL_SUPPLY;
         balances[msg.sender] = INITIAL_SUPPLY;
-  }
+        }
+        
+        
 }
 
 
-contract timer {
-     /*
+contract DateTime {
+        /*
          *  Date and Time utilities for ethereum contracts
          *
          */
@@ -40,9 +42,19 @@ contract timer {
 
         uint16 constant ORIGIN_YEAR = 1970;
 
-        function getNow() public constant returns (uint time){
-            uint chainStartTime = now;
+        function getNow() public constant returns (uint256 time){
+            uint256 chainStartTime = now;
             return chainStartTime;
+        }
+
+        function isDeadline(uint _time) public constant returns (bool){
+            if( getNow() >= _time){
+                return true;
+            }
+            else{
+                return false;
+            }
+            
         }
 
         function isLeapYear(uint16 year) public pure returns (bool) {
@@ -234,17 +246,25 @@ contract timer {
 
                 return timestamp;
         }
-    
-    
-    
 }
 
 
-contract Quiz is TryGongToken {
+contract Quiz is TryGongToken,DateTime {
+    address owner = msg.sender;
+
+    function whoboss() public constant returns(address){
+        return owner;
+    }
+    
+    function who() public constant returns(address){
+        return msg.sender;
+    }
 
     struct Answer{
+    	uint answerId;
         string text; //答案的內容 
         uint hearts; //答案的讚數
+        address replyperson;
     }
     
     struct Option{
@@ -253,14 +273,14 @@ contract Quiz is TryGongToken {
     }
     
     struct Question{
-        uint questionNumber;
+        uint questionId;
         string questionName; //題目的主旨
         string text; //題目的內容
         string userName; //建立題目的使用者名稱
         uint time; //建立題目的時間
         uint[] answerList; //list of answer keys so we can look them up
         uint money;
-        mapping(uint => Answer) answerStructs; //答案的struct，用answerNumber取得 
+        mapping(uint => Answer) answerStructs; //答案的struct，用answerId取得 
         uint[] optionList; 
         mapping(uint => Option) optionStructs; //選項的struct，用optionNumber取得
     }
@@ -271,74 +291,78 @@ contract Quiz is TryGongToken {
     //事件記得寫
     
     //建立一個新題目
-    function newQuestion(string _questionName ,string _text, string _userName,uint _time, uint _money, address _manageAddress) public returns (bool success,uint id,string questionName, string text, string userNamename, uint time,uint money){
+    function newQuestion(string _questionName ,string _text, string _userName,uint _time, uint _money) public returns (bool success,uint id,string questionName, string text, string userNamename, uint time,uint money){
         // not checking for duplicates
-        uint _questionNumber = 1 + questionList.length;
-        transfer(_manageAddress, _money);
-        questionStructs[_questionNumber].questionNumber = _questionNumber;
-        questionStructs[_questionNumber].questionName = _questionName;
-        questionStructs[_questionNumber].text = _text;
-        questionStructs[_questionNumber].userName = _userName;
-        questionStructs[_questionNumber].time = _time;
-        questionStructs[_questionNumber].money = _money;
-        questionList.push(_questionNumber);
+        uint _questionId = 1 + questionList.length;
+        transfer(owner, _money);
+        questionStructs[_questionId].questionId = _questionId;
+        questionStructs[_questionId].questionName = _questionName;
+        questionStructs[_questionId].text = _text;
+        questionStructs[_questionId].userName = _userName;
+        questionStructs[_questionId].time = _time;
+        questionStructs[_questionId].money = _money;
+        questionList.push(_questionId);
         return(
             true,
-            _questionNumber,
+            _questionId,
             _questionName,
             _text,
             _userName,
-            questionStructs[_questionNumber].time,
-            questionStructs[_questionNumber].money
+            questionStructs[_questionId].time,
+            questionStructs[_questionId].money
         );
     }
     
     //回傳題目資訊
-    function getQuestion(uint _questionNumber) public constant returns(string questionName, string text, string userNamename, uint time,uint money, uint optionCount, uint answerCount){
+    function getQuestion(uint _questionId) public constant returns(uint id,string questionName, string text, string userNamename, uint time,uint money, uint answerCount){
         return(
-            questionStructs[_questionNumber].questionName,
-            questionStructs[_questionNumber].text,
-            questionStructs[_questionNumber].userName, 
-            questionStructs[_questionNumber].time,
-            questionStructs[_questionNumber].money,
-            questionStructs[_questionNumber].answerList.length,
-            questionStructs[_questionNumber].optionList.length);
+            _questionId,
+            questionStructs[_questionId].questionName,
+            questionStructs[_questionId].text,
+            questionStructs[_questionId].userName, 
+            questionStructs[_questionId].time,
+            questionStructs[_questionId].money,
+            questionStructs[_questionId].answerList.length);
     }
 
     //新增選項
-    function addOption(uint _questionNumber,uint _optionNumber,string _optionText) public returns(bool success){
-        questionStructs[_questionNumber].optionList.push(_optionNumber);
-        questionStructs[_questionNumber].optionStructs[_optionNumber].text = _optionText;
+    /*function addOption(uint _questionId,uint _optionNumber,string _optionText) public returns(bool success){
+        questionStructs[_questionId].optionList.push(_optionNumber);
+        questionStructs[_questionId].optionStructs[_optionNumber].text = _optionText;
         return true;
-    }
+    }*/
 
     //統計選項的票數
-    function countOption(uint _questionNumber,uint _optionNumber) public constant returns(uint count){
-        return(questionStructs[_questionNumber].optionStructs[_optionNumber].voteCount);
-    }
+    /*function countOption(uint _questionId,uint _optionNumber) public constant returns(uint count){
+        return(questionStructs[_questionId].optionStructs[_optionNumber].voteCount);
+    }*/
 
     //對選項投票
-    function voteOption(uint _questionNumber,uint _optionNumber) public constant returns(bool success){
-        questionStructs[_questionNumber].optionStructs[_optionNumber].voteCount +1;
+    /*function voteOption(uint _questionId,uint _optionNumber) public constant returns(bool success){
+        questionStructs[_questionId].optionStructs[_optionNumber].voteCount +1;
         return true;
-    }
+    }*/
 
     //回傳選項(還沒解決回傳string[]的問題)
     //function getOption
     
     //新增答案
-    function addAnswer(uint _questionNumber, uint _answerNumber, string _answerText) public returns(bool success){
-        questionStructs[_questionNumber].answerList.push(_answerNumber);
-        questionStructs[_questionNumber].answerStructs[_answerNumber].text = _answerText;
+    function addAnswer(uint _questionId,  string _answerText) public returns(bool success){
+        uint _answerId = 1 + questionStructs[_questionId].answerList.length;
+        questionStructs[_questionId].answerStructs[_answerId].answerId = _answerId;
+        questionStructs[_questionId].answerStructs[_answerId].replyperson = msg.sender;
+        questionStructs[_questionId].answerStructs[_answerId].text = _answerText;
+        questionStructs[_questionId].answerStructs[_answerId].hearts = 0;
+        questionStructs[_questionId].answerList.push(_answerId);
         // answer vote will init to 0 without our help
         return true;
     }
     
     //取得答案
-    function getQuestionAnswer(uint _questionNumber, uint _answerNumber) public constant returns(string answerText, uint answerHeart){
+    function getQuestionAnswer(uint _questionId, uint _answerId) public constant returns(string answerText, uint answerHeart){
         return(
-            questionStructs[_questionNumber].answerStructs[_answerNumber].text,
-            questionStructs[_questionNumber].answerStructs[_answerNumber].hearts);
+            questionStructs[_questionId].answerStructs[_answerId].text,
+            questionStructs[_questionId].answerStructs[_answerId].hearts);
     }
     
     //計算有多少題目
@@ -347,24 +371,55 @@ contract Quiz is TryGongToken {
     }
     
     //用題目編號得知題目名稱
-    function getQuestionAtIndex(uint _questionNumber) public constant returns(string question){
-        return questionStructs[_questionNumber].questionName;
+    function getQuestionAtIndex(uint _questionId) public constant returns(string question){
+        return questionStructs[_questionId].questionName;
     }
     
     //得到題目有幾個答案
-    function getQuestionAnswerCount(uint _questionNumber) public constant returns(uint answerCount){
-        return(questionStructs[_questionNumber].answerList.length);
+    function getQuestionAnswerCount(uint _questionId) public constant returns(uint answerCount){
+        return(questionStructs[_questionId].answerList.length);
     }
     
     //對於題目的答案按讚
-    function addHeart(uint _questionNumber, uint _answerNumber) public constant returns(uint hearts){
-        questionStructs[_questionNumber].answerStructs[_answerNumber].hearts + 1;
-        return(questionStructs[_questionNumber].answerStructs[_answerNumber].hearts);
+    function addHeart(uint _questionId, uint _answerId) public  returns(uint hearts){
+        questionStructs[_questionId].answerStructs[_answerId].hearts += 1;
+        return(questionStructs[_questionId].answerStructs[_answerId].hearts);
     }
     
-    /*function getQuestionAnswerAtIndex(string questionNumber, uint answerRow) public constant returns(string answerNumber)
+    //回傳總票數
+    function calculateTotalBonus(uint _questionId) public constant returns(uint total){
+        total = 0;
+        for(uint i=1 ; i<questionStructs[_questionId].answerList.length+1 ; i++){
+            total += questionStructs[_questionId].answerStructs[i].hearts;
+        }
+        return total;
+        
+    }
+    
+    function calculateIndivudalBonus(uint _questionId, uint _answerId) public constant returns(uint bonus){
+        uint totalhearts = calculateTotalBonus(_questionId);
+        bonus = questionStructs[_questionId].money / totalhearts * questionStructs[_questionId].answerStructs[_answerId].hearts;
+        return bonus;
+    }
+    
+    function sentBonus(uint _questionId) public returns(bool){
+        
+        if(isDeadline(questionStructs[_questionId].time)){
+            for(uint i=1; i<questionStructs[_questionId].answerList.length+1; i++){
+                uint bonus = calculateIndivudalBonus(_questionId,i);
+                address bonusTo = questionStructs[_questionId].answerStructs[i].replyperson;
+                transfer(bonusTo,bonus);
+            }
+            return true;
+        }
+        else{
+            return false;
+        }
+        
+    }
+    /*function getQuestionAnswerAtIndex(string questionId, uint answerRow) public constant returns(string answerId)
     {
-        return(questionStructs[questionNumber].answerList[answerRow]);
+        return(questionStructs[questionId].answerList[answerRow]);
     }*/
 
 }
