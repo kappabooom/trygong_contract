@@ -1,4 +1,4 @@
- pragma solidity ^0.4.24;
+pragma solidity ^0.4.24;
 import "github.com/OpenZeppelin/openzeppelin-solidity/contracts/token/ERC20/StandardToken.sol";
 
 
@@ -281,6 +281,7 @@ contract Quiz is TryGongToken,DateTime {
         uint time; //建立題目的時間
         uint[] answerList; //list of answer keys so we can look them up
         uint money;
+        bool isMoneySent;
         mapping(uint => Answer) answerStructs; //答案的struct，用answerId取得 
         uint[] optionList; 
         mapping(uint => Option) optionStructs; //選項的struct，用optionNumber取得
@@ -303,6 +304,7 @@ contract Quiz is TryGongToken,DateTime {
         questionStructs[_questionId].userName = _userName;
         questionStructs[_questionId].time = _time;
         questionStructs[_questionId].money = _money;
+        questionStructs[_questionId].isMoneySent = false;
         questionList.push(_questionId);
         return(
             _questionId,
@@ -407,12 +409,13 @@ contract Quiz is TryGongToken,DateTime {
     
     function sentBonus(uint _questionId) public returns(bool){
         
-        if(isDeadline(questionStructs[_questionId].time)){
+        if(isDeadline(questionStructs[_questionId].time)&&!questionStructs[_questionId].isMoneySent){
             for(uint i=1; i<questionStructs[_questionId].answerList.length+1; i++){
                 uint bonus = calculateIndivudalBonus(_questionId,i);
                 address bonusTo = questionStructs[_questionId].answerStructs[i].replyperson;
                 transfer(bonusTo,bonus);
             }
+            questionStructs[_questionId].isMoneySent = true;
             return true;
         }
         else{
@@ -426,5 +429,3 @@ contract Quiz is TryGongToken,DateTime {
     }*/
 
 }
-
-
